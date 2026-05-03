@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>近代世界人口迁移五大路线 · 高德互动地图</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --text: #e0e0e0;
+            --card-bg: #162447;
+            --border: #2a2a4a;
+            --route-1: #e74c3c;
+            --route-2: #e67e22;
+            --route-3: #2ecc71;
+            --route-4: #3498db;
+            --route-5: #9b59b6;
+            --glow: #f39c12;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #0d1117;
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #f0c060, #e8b84b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .badge {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: #aaa;
+            border: 1px solid var(--border);
+        }
+        .map-section {
+            position: relative;
+            width: 100%;
+            height: 550px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 右下角控制面板 */
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+        .route-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: rgba(20, 30, 50, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #ddd;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: left;
+            transition: all 0.2s;
+            border-left: 5px solid transparent;
+            white-space: nowrap;
+            min-width: 190px;
+        }
+        .route-btn:hover { background: rgba(40, 60, 80, 0.85); color: white; }
+        .route-btn.active { color: white; font-weight: 800; border-color: var(--glow); background: rgba(40, 40, 40, 0.85); }
+        .btn-1 { border-left-color: var(--route-1); }
+        .btn-2 { border-left-color: var(--route-2); }
+        .btn-3 { border-left-color: var(--route-3); }
+        .btn-4 { border-left-color: var(--route-4); }
+        .btn-5 { border-left-color: var(--route-5); }
+
+        /* 详情卡片网格 */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+        @media (max-width: 1100px) { .details-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 700px) { .details-grid { grid-template-columns: 1fr; } }
+        .info-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 5px solid transparent;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid var(--border);
+            font-size: 0.75rem;
+            line-height: 1.6;
+        }
+        .info-card:hover { border-color: #555; transform: translateY(-2px); }
+        .info-card.active {
+            border-color: var(--glow);
+            box-shadow: 0 0 25px rgba(243, 156, 18, 0.35);
+            background: #1e3250;
+            transform: translateY(-2px);
+        }
+        .info-card .title { font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; }
+        .info-card .meta { color: #b0b0c0; margin-bottom: 4px; }
+        .card-1 { border-left-color: var(--route-1); } .card-1 .title { color: var(--route-1); }
+        .card-2 { border-left-color: var(--route-2); } .card-2 .title { color: var(--route-2); }
+        .card-3 { border-left-color: var(--route-3); } .card-3 .title { color: var(--route-3); }
+        .card-4 { border-left-color: var(--route-4); } .card-4 .title { color: var(--route-4); }
+        .card-5 { border-left-color: var(--route-5); } .card-5 .title { color: var(--route-5); }
+
+        /* 背景描述框 */
+        .context-box {
+            background: #0f1a2e;
+            border-radius: 14px;
+            padding: 20px 24px;
+            border: 1px solid var(--border);
+            min-height: 100px;
+            transition: 0.2s;
+        }
+        .context-box .ctx-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; color: var(--glow); }
+        .context-box .ctx-text { color: #c0c0d0; font-size: 0.9rem; line-height: 1.7; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🌍 近代世界人口迁移 · 五大路线</h1>
+        <div class="badge">🗺️ 高德地图底板 | gaode.com</div>
+    </div>
+
+    <!-- 地图区域 -->
+    <div class="map-section">
+        <div id="map"></div>
+        <div class="control-panel" id="controlPanel">
+            <button class="route-btn btn-1 active" data-route="1">🇪🇺 欧洲→美洲（殖民·移民）</button>
+            <button class="route-btn btn-2" data-route="2">🌍 非洲→美洲（奴隶贸易）</button>
+            <button class="route-btn btn-3" data-route="3">🧑‍🌾 华工→美洲/大洋洲</button>
+            <button class="route-btn btn-4" data-route="4">🇬🇧 英国→澳大利亚/新西兰</button>
+            <button class="route-btn btn-5" data-route="5">⛵ “下南洋”（东南沿海→东南亚）</button>
+        </div>
+    </div>
+
+    <!-- 五大迁移路线详情卡片 -->
+    <div class="details-grid" id="detailsGrid">
+        <div class="info-card card-1 active" data-route="1">
+            <div class="title">① 欧洲 → 美洲（殖民·移民）</div>
+            <div class="meta"><strong>时间：</strong>16世纪 — 19世纪</div>
+            <div class="meta"><strong>主体：</strong>西班牙、葡萄牙、英国、法国等</div>
+            <div class="meta"><strong>原因：</strong>殖民扩张、宗教逃避、淘金热</div>
+            <div class="meta"><strong>史实：</strong>1760年移居美国160万人</div>
+            <div class="meta"><strong>贡献：</strong>奠定美洲人口文化基础</div>
+        </div>
+        <div class="info-card card-2" data-route="2">
+            <div class="title">② 非洲 → 美洲（奴隶贸易）</div>
+            <div class="meta"><strong>时间：</strong>15世纪 — 19世纪</div>
+            <div class="meta"><strong>主体：</strong>非洲黑人（被迫贩运）</div>
+            <div class="meta"><strong>原因：</strong>种植园劳动力极度短缺</div>
+            <div class="meta"><strong>史实：</strong>跨大西洋贩运约1200万人</div>
+            <div class="meta"><strong>贡献：</strong>形成非裔美洲文化</div>
+        </div>
+        <div class="info-card card-3" data-route="3">
+            <div class="title">③ 华工 → 美洲/大洋洲</div>
+            <div class="meta"><strong>时间：</strong>19世纪 — 20世纪初</div>
+            <div class="meta"><strong>主体：</strong>广东、福建契约华工</div>
+            <div class="meta"><strong>原因：</strong>废除奴隶制后劳力短缺</div>
+            <div class="meta"><strong>史实：</strong>太平洋铁路华工占90%</div>
+            <div class="meta"><strong>贡献：</strong>修筑美洲铁路基础设施</div>
+        </div>
+        <div class="info-card card-4" data-route="4">
+            <div class="title">④ 英国 → 澳大利亚/新西兰</div>
+            <div class="meta"><strong>时间：</strong>1788年 — 1868年</div>
+            <div class="meta"><strong>主体：</strong>英国罪犯及自由移民</div>
+            <div class="meta"><strong>原因：</strong>罪犯流放与殖民扩张</div>
+            <div class="meta"><strong>史实：</strong>80年流放16.5万罪犯</div>
+            <div class="meta"><strong>贡献：</strong>开发澳洲殖民地基础</div>
+        </div>
+        <div class="info-card card-5" data-route="5">
+            <div class="title">⑤ “下南洋”（东南沿海→东南亚）</div>
+            <div class="meta"><strong>时间：</strong>明末 — 1950年代</div>
+            <div class="meta"><strong>主体：</strong>福建、广东沿海居民</div>
+            <div class="meta"><strong>原因：</strong>贫困、战乱、南洋劳力需求</div>
+            <div class="meta"><strong>史实：</strong>1922-39年出洋超500万</div>
+            <div class="meta"><strong>贡献：</strong>建立东南亚华人商业网络</div>
+        </div>
+    </div>
+
+    <!-- 背景介绍框 -->
+    <div class="context-box" id="contextBox">
+        <div class="ctx-title" id="ctxTitle">📖 当前路线背景：欧洲 → 美洲（殖民与移民）</div>
+        <div class="ctx-text" id="ctxText">哥伦布1492年发现新大陆后，西班牙和葡萄牙率先向中南美洲殖民。16世纪西班牙称霸美洲，法国、荷兰、英国也相继进入北美。殖民者屠杀印第安人致人口锐减，引发对非洲奴隶的巨大需求。欧洲迁往美洲人口激增，1760年移居美国达160万人，深刻改变了全球人口分布与文化格局。</div>
+    </div>
+</div>
+
+<!-- 使用高德地图1.4.15稳定版，直接引入JS -->
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=6dd9615b5a3222cb9a4a8bbac8a515fd&callback=onMapLoaded"></script>
+<script type="text/javascript">
+    // 安全密钥配置（1.4.15版本也需要）
+    window._AMapSecurityConfig = {
+        securityJsCode: 'fd461c5bf7001d57751fce97453129e2'
+    };
+
+    let map = null;
+    let currentRoute = 1;
+    let drawnItems = [];
+
+    // 路线数据
+    const routes = {
+        1: {
+            start: '里斯本', end: '纽约/巴西',
+            color: '#e74c3c',
+            path: [[-9.139,38.722],[-17.0,28.0],[-25.0,16.0],[-43.0,-5.0],[-43.17,-22.9],[-74.0,40.7]]
+        },
+        2: {
+            start: '西非', end: '巴西/加勒比',
+            color: '#e67e22',
+            path: [[-17.45,14.69],[-10.0,6.0],[2.0,1.0],[-25.0,-2.0],[-34.9,-7.1],[-72.0,18.5],[-74.0,40.7]]
+        },
+        3: {
+            start: '广东/福建', end: '旧金山/秘鲁/墨尔本',
+            color: '#2ecc71',
+            path: [[116.4,23.5],[118.1,24.47],[114.17,22.3],[121.0,25.0],[145.0,15.0],[-122.42,37.78],[-77.04,-12.05],[144.96,-37.81]]
+        },
+        4: {
+            start: '伦敦', end: '悉尼/奥克兰',
+            color: '#3498db',
+            path: [[-0.127,51.5],[-10.0,40.0],[-17.0,28.0],[-25.0,0.0],[18.0,-34.0],[50.0,-28.0],[115.0,-32.0],[151.2,-33.86],[174.76,-36.84]]
+        },
+        5: {
+            start: '厦门/汕头', end: '新加坡/雅加达',
+            color: '#9b59b6',
+            path: [[118.1,24.47],[116.4,23.5],[114.17,22.3],[113.5,22.1],[110.0,17.0],[106.7,10.8],[103.82,1.35],[101.7,3.14],[106.85,-6.21]]
+        }
+    };
+
+    const contexts = {
+        1: { title: '📖 当前路线背景：欧洲 → 美洲（殖民与移民）', text: '哥伦布1492年发现新大陆后，西班牙和葡萄牙率先向中南美洲殖民。16世纪西班牙称霸美洲，法国、荷兰、英国也相继进入北美。殖民者屠杀印第安人致人口锐减，引发对非洲奴隶的巨大需求。欧洲迁往美洲人口激增，1760年移居美国达160万人，深刻改变了全球人口分布与文化格局。' },
+        2: { title: '📖 当前路线背景：非洲 → 美洲（奴隶贸易）', text: '黑奴贸易始于15世纪，跨大西洋奴隶贸易将约1200万非洲人运往美洲。其中480万运往巴西，470万运往加勒比，38.8万抵达北美。船只从欧洲载工业品至西非换奴隶，横渡大西洋运奴至美洲，再将原料运回欧洲。奴隶死亡率极高，非洲损失人口超1亿。' },
+        3: { title: '📖 当前路线背景：华工 → 美洲/大洋洲', text: '19世纪欧美废除奴隶制后，大批华工被诱骗出洋（“卖猪仔”）。1849-1874年约10万华工移入秘鲁；1852-1856年两万华工修筑巴拿马铁路；1865-1869年1.4万华工修筑美国太平洋铁路，占工人总数90%。航程死亡率高达45%，船被称为“浮动地狱”，但他们为美洲基建做出巨大牺牲。' },
+        4: { title: '📖 当前路线背景：英国 → 澳大利亚/新西兰', text: '1788年第一批756名英国罪犯抵达新南威尔士，成为澳大利亚首批欧洲移民。此后80年间约16.5万罪犯被流放至此从事采石、修路等重体力劳动，开启了澳洲“劳改时代”。1868年流放制度终止，自由移民成为主流，这批罪犯的早期建设为澳洲开发奠定基础。' },
+        5: { title: '📖 当前路线背景：“下南洋”（东南沿海→东南亚）', text: '“下南洋”是中国近代三大人口迁徙之一。鸦片战争前约有150万华人在南洋；1922-1939年间从厦门等港口出洋者超500万。移民以广东、福建人为主，目前海外华人约3500万，80%在东南亚。他们促进了东南亚经济开发，形成了遍布全球的华人商业网络。' }
+    };
+
+    // 清除地图覆盖物
+    function clearMap() {
+        if (drawnItems.length > 0) {
+            map.remove(drawnItems);
+            drawnItems = [];
+        }
+    }
+
+    // 绘制路线
+    function drawRoute(id) {
+        if (!map) return;
+        clearMap();
+        const route = routes[id];
+        if (!route) return;
+        const { color, path, start, end } = route;
+
+        // 发光路线
+        const glowLine = new AMap.Polyline({
+            map: map,
+            path: path,
+            strokeColor: color,
+            strokeWeight: 12,
+            strokeOpacity: 0.35,
+            lineJoin: 'round',
+            zIndex: 5
+        });
+        drawnItems.push(glowLine);
+
+        // 主路线（方向箭头）
+        const mainLine = new AMap.Polyline({
+            map: map,
+            path: path,
+            strokeColor: color,
+            strokeWeight: 6,
+            strokeOpacity: 1,
+            showDir: true,
+            lineJoin: 'round',
+            zIndex: 10
+        });
+        drawnItems.push(mainLine);
+
+        // 起点标记
+        const startMarker = new AMap.Marker({
+            map: map,
+            position: path[0],
+            content: `<div style="background:${color};color:white;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.7);">📍 ${start}</div>`,
+            offset: new AMap.Pixel(-15, -10),
+            zIndex: 20
+        });
+        drawnItems.push(startMarker);
+
+        // 终点标记
+        const endMarker = new AMap.Marker({
+            map: map,
+            position: path[path.length-1],
+            content: `<div style="background:${color};color:white;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.7);">🏁 ${end}</div>`,
+            offset: new AMap.Pixel(-15, -10),
+            zIndex: 20
+        });
+        drawnItems.push(endMarker);
+
+        // 中间节点圆点
+        for (let i = 1; i < path.length - 1; i++) {
+            const dot = new AMap.Marker({
+                map: map,
+                position: path[i],
+                content: `<div style="width:9px;height:9px;background:${color};border-radius:50%;border:2px solid white;box-shadow:0 0 10px ${color};"></div>`,
+                offset: new AMap.Pixel(-4, -4),
+                zIndex: 15
+            });
+            drawnItems.push(dot);
+        }
+
+        // 自动适配视野
+        map.setFitView(drawnItems);
+    }
+
+    // 切换路线
+    function switchRoute(id) {
+        if (currentRoute === id) return;
+        currentRoute = id;
+
+        // 更新按钮样式
+        document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.route-btn[data-route="${id}"]`).classList.add('active');
+        // 更新卡片高亮
+        document.querySelectorAll('.info-card').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.info-card[data-route="${id}"]`).classList.add('active');
+        // 更新背景框
+        const ctx = contexts[id];
+        document.getElementById('ctxTitle').textContent = ctx.title;
+        document.getElementById('ctxText').textContent = ctx.text;
+        // 重绘路线
+        drawRoute(id);
+    }
+
+    // 绑定UI事件
+    function bindEvents() {
+        document.getElementById('controlPanel').addEventListener('click', (e) => {
+            const btn = e.target.closest('.route-btn');
+            if (!btn) return;
+            const id = parseInt(btn.getAttribute('data-route'));
+            if (id) switchRoute(id);
+        });
+        document.getElementById('detailsGrid').addEventListener('click', (e) => {
+            const card = e.target.closest('.info-card');
+            if (!card) return;
+            const id = parseInt(card.getAttribute('data-route'));
+            if (id) switchRoute(id);
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= '5') {
+                switchRoute(parseInt(e.key));
+            }
+        });
+    }
+
+    // 高德地图加载完成后的回调
+    function onMapLoaded() {
+        map = new AMap.Map('map', {
+            zoom: 2.5,
+            center: [0, 20],
+            resizeEnable: true,
+            mapStyle: 'amap://styles/normal' // 标准样式，底图清晰
+        });
+
+        // 立即绘制默认路线
+        drawRoute(1);
+
+        // 绑定其他事件
+        bindEvents();
+    }
+</script>
+</body>
+</html>
